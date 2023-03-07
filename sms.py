@@ -1,31 +1,58 @@
+# from twilio.rest import Client
+# from fastapi import FastAPI, Request, Response
+# from fastapi.responses import JSONResponse
+# import json
 from twilio.rest import Client
-from fastapi import FastAPI, Request, Response
-import json
-
-app = FastAPI()
+import mysql.connector
 
 # Twilio account SID and auth token
 account_sid = ''
 auth_token = ''
 
+# Define MySQL connection parameters
+
+db_config = {
+    'host': '',
+    'database': '',
+    'user': '',
+    'password': ''
+}
 # Create a Twilio client object
 client = Client(account_sid, auth_token)
 
+# Connect to the MySQL database
+try:
+    conn = mysql.connector.connect(**db_config)
+except mysql.connector.Error as err:
+    print("Error connecting to MySQL: {}".format(err))
+    exit()
 
-@app.post('/send/text')
-async def send_text(request: Request, response: Response):
-    # data = await request.json()
-    # REPLACE WITH REAL MOBILE NUMBER TO AVOID ERROR
-    number = "+"
-    message = "HELLO OODIE"
+# Query the database for unsent notifications
+cursor = conn.cursor(dictionary=True)
+query = "SELECT * FROM notification_list WHERE sent = false"
+cursor.execute(query)
+results = cursor.fetchall()
 
-    # Send the SMS message using Twilio
-    twilio_message = client.messages.create(
-        to=number,
-        from_='+',  # Replace with your Twilio phone number
-        body=message
-    )
+for result in results:
+    recipient = result['phone']
+    message = result['message']
 
-    response_body = {'message_sid': twilio_message.sid}
-    response.content = json.dumps(response_body)
-    return response.content
+    try:
+        # Send the SMS message using Twilio
+        twilio_message = client.messages.create(
+            to=recipient,
+            from_='+1',  # Replace with your Twilio phone number
+            body=message
+        )
+        print("Sent SMS to {}: {}".format(recipient, message))
+
+        # Update the notification_list table to mark the message as sent
+        query = "UPDATE notification_list SET sent = true WHERE id = %s"
+        cursor.execute(query, (result['id'],))
+        conn.commit()
+    except Exception as e:
+        print("Error sending SMS to {}: {}".format(recipient, e))
+
+# Close the database connection
+cursor.close()
+conn.close()
