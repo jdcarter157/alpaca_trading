@@ -6,8 +6,8 @@ import time
 import requests
 
 # Define your Alpaca API credentials
-api_key = 'PK29T59TY9HH3UJPEJLG'
-api_secret = 'j3aozAJ74WNBgDQVR4SVl8wZW0Qe0yfWouQfZTqj'
+api_key = ''
+api_secret = ''
 base_url = 'https://paper-api.alpaca.markets'
 
 # Authenticate your client
